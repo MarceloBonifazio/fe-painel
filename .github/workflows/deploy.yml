@@ -1,0 +1,78 @@
+# GERADO pelo create-project — NÃO editar à mão (regenere via plataforma).
+# Deploy manual: escolhe a TAG (default `latest`), VERIFICA que o artefato existe na cloud
+# aws (gate — só finaliza depois de garantir que a imagem/bundle subiu) e então promove.
+name: deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Versão a promover (tag X.Y.Z ou "latest")'
+        default: latest
+        required: true
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  TAG: ${{ github.event.inputs.tag }}
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - name: gate — artefato $TAG existe na cloud?
+        run: |
+          aws s3 ls "s3://${{ vars.AWS_STATIC_BUCKET }}/fe-cep-painel/$TAG/" >/dev/null
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+      - run: npm ci
+      - run: npm test
+      - name: cache do SonarScanner (plugins/analyzers — evita re-download a cada análise)
+        if: ${{ env.SONAR_TOKEN != '' }}
+        uses: actions/cache@v4
+        with:
+          path: ~/.sonar/cache
+          key: ${{ runner.os }}-sonar
+      - name: SonarQube scan (quality — lê configs/sonar-project.properties)
+        if: ${{ env.SONAR_TOKEN != '' }}
+        uses: SonarSource/sonarqube-scan-action@v4
+        with:
+          # O properties mora em configs/; a action só o descobre na raiz. projectBaseDir vai junto,
+          # senão a base da análise viraria configs/ e o scan varreria só aquela pasta.
+          args: -Dproject.settings=configs/sonar-project.properties -Dsonar.projectBaseDir=.
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+      - name: gate de cobertura (minCoverage=0, fixado no create)
+        run: |
+          MIN=0
+          if [ "$MIN" -eq 0 ]; then echo "gate desligado (minCoverage 0)"; exit 0; fi
+          COV=$(node -e "console.log(Math.floor((require('./coverage/coverage-summary.json').total.lines.pct)||0))")
+          echo "cobertura $COV% (mínimo $MIN%)"
+          [ "$COV" -ge "$MIN" ] || { echo "::error::cobertura $COV% < $MIN% — bloqueia release/prod"; exit 1; }
+  deploy:
+    needs: [verify, test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - name: re-sync latest + invalida CloudFront
+        run: |
+          aws s3 sync "s3://${{ vars.AWS_STATIC_BUCKET }}/fe-cep-painel/$TAG/" "s3://${{ vars.AWS_STATIC_BUCKET }}/fe-cep-painel/latest/" --delete
+          aws cloudfront create-invalidation --distribution-id ${{ vars.AWS_CF_DISTRIBUTION_ID }} --paths "/fe-cep-painel/latest/*"

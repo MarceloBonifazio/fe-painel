@@ -1,0 +1,101 @@
+# Manifesto do workload — fonte da verdade da INTENÇÃO. A plataforma traduz
+# isto para a implementação na cloud (projects/fe-cep-painel/infra/aws).
+name: fe-cep-painel
+kind: spa                  # api | spa | worker | serverless | cron | queue-consumer | static
+language: node
+framework: angular        # framework escolhido (ou "cru")
+runtime: node
+port: 3000
+route: painel                # roteamento local (Traefik): /painel
+cloud:
+  provider: aws           # aws | azure | gcp
+
+deployment:
+  exposure: public
+  scaling: { min: 1, max: 4 }
+# Sizing p/ estimativa de custo (`make cost`) — editável; atualize com `make sizing NAME=fe-cep-painel ...`.
+sizing:
+  computeSize: small       # small | medium | large (vCPU/GB do compute)
+  prodReplicas: 2     # réplicas em prod
+  prodEgressGb: 100     # tráfego de saída em prod (GB/mês)
+  budgetDev: 0           # budget mensal USD por ambiente (0 = sem budget)
+  budgetStaging: 0
+  budgetProd: 0
+
+secrets: vault://fe-cep-painel        # namespace dedicado: secret/fe-cep-painel/<env>
+
+# Recursos (banco/fila/cache) — provisionados pelo floci em dev, Terraform em prod.
+resources: []
+
+observability:
+  enabled: true
+  # SLO do workload — FONTE DA VERDADE do cartão SLI/SLO/Error Budget (observability/dashboard.json)
+  # e dos alertas (observability/alerts.yaml). Editou aqui? rode `make regenerate-obs NAME=fe-cep-painel`
+  # p/ o dashboard e os alertas acompanharem. `window` é a janela do error budget: com 30d e
+  # availability 99.9 o budget é 43min ((1 - 0.999) × 30 × 24 × 60).
+  slo:
+    availability: 99.9      # % de requests sem 5xx (SLI medido no Traefik, na borda)
+    window: 30d             # janela do error budget (a retenção do Prometheus cobre até 45d)
+    latency:
+      p95: 500ms            # alvo de p95 (SLI medido no /metrics do app)
+# Documentação de contratos — descoberta pelo Portal (agrega os /openapi.json de todos os serviços).
+# O scaffold entrega o piso ESTÁTICO (contrato operacional) em /openapi.json + UI /docs (só dev).
+# Documente as ROTAS DA SUA API por cima: lib nativa do stack (ver README) ou editando openapi.json.
+# SSR: servido sob a base /painel (sem strip), com o contrato em /api → /painel/api/*.
+documentation:
+  openapi:
+    spec: /painel/api/openapi.json   # SSR: sob a base, contrato em /api
+    ui: /painel/api/docs         # UI em /painel/api/docs (só dev)
+    uiTool:            # scalar | swagger | redoc | rapidoc | elements (escolhido no create)
+
+# Testes (6ª camada — qualidade). O gate de CI lê o `minCoverage` daqui e BLOQUEIA o release
+# (release.yml) e a promoção a PROD (deploy.yml) se a cobertura ficar abaixo — NÃO barra a esteira
+# local/dev/stage/homolog. `0` = gate desligado (opt-in: o time sobe o número quando quiser exigir).
+# Roda `make quality-check` (scripts/quality-gate-test.mjs) — unit por linguagem + cobertura.
+testing:
+  framework: jest                 # vitest | jest | bun test (bun usa o runner nativo)
+  minCoverage: 0                    # % mínima p/ liberar release/prod (0 = sem gate)
+  e2e: playwright                            # playwright | cypress | none — SÓ a config (escreva os testes)
+  quality: sonarqube                    # sonarqube | none — análise de qualidade (SonarQube central; sonar-project.properties gerado)
+# Governance (5ª camada) — ownership + custo + políticas. Consumido pelo Portal/ownership e
+# verificável por `make governance-check`. team/slack/email/costCenter vêm do create; o resto é
+# placeholder — preencha no repo do workload. `ownership.team` é obrigatório (não pode ficar vazio).
+governance:
+  ownership:
+    team: squad-platform
+    slack: ""               # ex.: #squad-identity
+    email: ""               # ex.: identity@empresa.com
+    github: ""                          # ex.: minha-org/squad-identity (placeholder — preencha)
+  costCenter: ""       # ex.: CC-1234
+  tags: []                              # ex.: [tier:gold, domain:identity]
+  policies: []                          # ex.: [data-residency:br, pii]
+  budgets: { monthly_usd: null }        # ex.: { monthly_usd: 500 }
+  security: { tier: standard }          # standard | restricted
+
+# Envs PRÓPRIAS do app — as que a plataforma não tem como derivar.
+#
+# O bloco `environment:` do compose é GERADO (porta, floci, recursos declarados, Vault, tópico) e o
+# `make regenerate-compose` o reescreve INTEIRO. Env posta à mão lá é apagada na próxima regeneração —
+# o lugar dela é aqui. Comentário de linha é preservado no fragmento.
+#
+# Uma env declarada aqui SOBREPÕE a derivada de mesmo nome (não duplica), o que serve para pedir a
+# forma overridable de um endereço:
+#
+#   env:
+#     JWT_SECRET: "${JWT_SECRET:-dev-change-me}"
+#     DATABASE_URL: "${DATABASE_URL:-postgres://app:app@fe-cep-painel-postgres:5432/app}"
+#
+# NÃO declare `PORT`, `GRPC_PORT`, `BASE_PATH`, `APP_ENV`, `NODE_ENV`, `VAULT_*` nem `KAFKA_TOPIC`:
+# o template as escreve com valor fixo, e o gerador recusa a colisão em vez de gerar YAML duplicado.
+#
+# Descomente e acrescente as suas. Fica COMENTADO e não como `env: {}` porque um bloco vazio já
+# existente faz o time escrever o dele embaixo — e aí há DOIS `env:` no arquivo, dos quais o parser lê
+# só o primeiro. O env de verdade some sem erro nenhum.
+# env:
+#   MINHA_ENV: "valor"
+
+environments:
+  dev:  { provisioner: floci }
+  prod: { provisioner: terraform }
+domains:
+  - fe-cep-painel.local
