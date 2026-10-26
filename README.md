@@ -12,7 +12,7 @@ Use a stack completa documentada em `../be-api/README.md`. URL: **http://localho
 
 Logins locais: `admin` / `admin-dev` e `user` / `user-dev`.
 
-Para iniciar as dependências (API, PostgreSQL, Kafka, Keycloak e WireMock), siga o README do `be-api` ou, na raiz, execute `make up-staged`.
+Para iniciar as dependências (API, PostgreSQL, Kafka, Keycloak e WireMock), execute `docker compose up --build -d` no diretório do `be-api`.
 
 Para desenvolvimento com Node compatível com Angular 22:
 
