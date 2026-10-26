@@ -1,4 +1,4 @@
-# Terraform do workload `fe-cep-painel` na AWS. GERADO pela plataforma.
+# Terraform do workload `fe-painel` na AWS. GERADO pela plataforma.
 # A INTENÇÃO (project.yaml: kind=spa) escolhe o módulo: tfKind=spa.
 #   api → ECS Fargate + ALB   ·   spa → S3 + CloudFront
 # ► cloud PRIMÁRIA deste workload.
@@ -13,7 +13,7 @@ provider "aws" {
   region = var.region
 }
 
-module "fe-cep-painel" {
+module "fe-painel" {
   source = "../../../../providers/aws/modules/spa"
 
   name   = var.name
@@ -24,5 +24,5 @@ module "fe-cep-painel" {
 }
 
 output "endpoint" {
-  value = module.fe-cep-painel.endpoint
+  value = module.fe-painel.endpoint
 }

@@ -1,4 +1,4 @@
-// Resolução do alias `@/` do workload `fe-cep-painel` (hooks de módulo do Node).
+// Resolução do alias `@/` do workload `fe-painel` (hooks de módulo do Node).
 //
 // POR QUE ISTO EXISTE: a plataforma padroniza `@/…` como caminho de import em TODOS os workloads
 // JS/TS, para ninguém escrever `../../../shared/logger`. Em TypeScript quem resolve é o

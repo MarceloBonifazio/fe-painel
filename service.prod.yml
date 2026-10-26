@@ -1,14 +1,14 @@
-# Fragmento de compose do `fe-cep-painel` (spa) — PROD-like. GERADO.
+# Fragmento de compose do `fe-painel` (spa) — PROD-like. GERADO.
 # Aplicado por cima do dev quando PLATFORM_ENV=prod: imagem `runner`, sem bind-mount.
 # Em PRODUÇÃO real, roteamento/escala/recursos vêm da cloud (Terraform em
-# projects/fe-cep-painel/infra/aws) — este override valida a imagem prod localmente.
+# projects/fe-painel/infra/aws) — este override valida a imagem prod localmente.
 # SPA ESTÁTICA (angular): em prod NÃO roda container próprio — é buildada, enviada ao floci
 # (paridade de storage, igual o Terraform provisiona) e SERVIDA pelo Caddy compartilhado
 # (scripts/provision-spa.mjs, rodado pelo `make up-prod`). Este override neutraliza o container de
 # dev (no-op que sai) e remove as labels do Traefik, p/ não conflitar com a rota do Caddy
-# (file provider em runtime/traefik/dynamic/spa-fe-cep-painel.yml).
+# (file provider em runtime/traefik/dynamic/spa-fe-painel.yml).
 services:
-  fe-cep-painel:
+  fe-painel:
     image: alpine:3.21
     pull_policy: missing
     entrypoint: ["true"]

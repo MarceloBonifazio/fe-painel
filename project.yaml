@@ -1,6 +1,6 @@
 # Manifesto do workload — fonte da verdade da INTENÇÃO. A plataforma traduz
-# isto para a implementação na cloud (projects/fe-cep-painel/infra/aws).
-name: fe-cep-painel
+# isto para a implementação na cloud (projects/fe-painel/infra/aws).
+name: fe-painel
 kind: spa                  # api | spa | worker | serverless | cron | queue-consumer | static
 language: node
 framework: angular        # framework escolhido (ou "cru")
@@ -13,7 +13,7 @@ cloud:
 deployment:
   exposure: public
   scaling: { min: 1, max: 4 }
-# Sizing p/ estimativa de custo (`make cost`) — editável; atualize com `make sizing NAME=fe-cep-painel ...`.
+# Sizing p/ estimativa de custo (`make cost`) — editável; atualize com `make sizing NAME=fe-painel ...`.
 sizing:
   computeSize: small       # small | medium | large (vCPU/GB do compute)
   prodReplicas: 2     # réplicas em prod
@@ -22,7 +22,7 @@ sizing:
   budgetStaging: 0
   budgetProd: 0
 
-secrets: vault://fe-cep-painel        # namespace dedicado: secret/fe-cep-painel/<env>
+secrets: vault://fe-painel        # namespace dedicado: secret/fe-painel/<env>
 
 # Recursos (banco/fila/cache) — provisionados pelo floci em dev, Terraform em prod.
 resources: []
@@ -30,7 +30,7 @@ resources: []
 observability:
   enabled: true
   # SLO do workload — FONTE DA VERDADE do cartão SLI/SLO/Error Budget (observability/dashboard.json)
-  # e dos alertas (observability/alerts.yaml). Editou aqui? rode `make regenerate-obs NAME=fe-cep-painel`
+  # e dos alertas (observability/alerts.yaml). Editou aqui? rode `make regenerate-obs NAME=fe-painel`
   # p/ o dashboard e os alertas acompanharem. `window` é a janela do error budget: com 30d e
   # availability 99.9 o budget é 43min ((1 - 0.999) × 30 × 24 × 60).
   slo:
@@ -53,7 +53,7 @@ documentation:
 # local/dev/stage/homolog. `0` = gate desligado (opt-in: o time sobe o número quando quiser exigir).
 # Roda `make quality-check` (scripts/quality-gate-test.mjs) — unit por linguagem + cobertura.
 testing:
-  framework: jest                 # vitest | jest | bun test (bun usa o runner nativo)
+  framework: vitest                 # vitest | jest | bun test (bun usa o runner nativo)
   minCoverage: 0                    # % mínima p/ liberar release/prod (0 = sem gate)
   e2e: playwright                            # playwright | cypress | none — SÓ a config (escreva os testes)
   quality: sonarqube                    # sonarqube | none — análise de qualidade (SonarQube central; sonar-project.properties gerado)
@@ -83,7 +83,7 @@ governance:
 #
 #   env:
 #     JWT_SECRET: "${JWT_SECRET:-dev-change-me}"
-#     DATABASE_URL: "${DATABASE_URL:-postgres://app:app@fe-cep-painel-postgres:5432/app}"
+#     DATABASE_URL: "${DATABASE_URL:-postgres://app:app@fe-painel-postgres:5432/app}"
 #
 # NÃO declare `PORT`, `GRPC_PORT`, `BASE_PATH`, `APP_ENV`, `NODE_ENV`, `VAULT_*` nem `KAFKA_TOPIC`:
 # o template as escreve com valor fixo, e o gerador recusa a colisão em vez de gerar YAML duplicado.
@@ -98,4 +98,4 @@ environments:
   dev:  { provisioner: floci }
   prod: { provisioner: terraform }
 domains:
-  - fe-cep-painel.local
+  - fe-painel.local

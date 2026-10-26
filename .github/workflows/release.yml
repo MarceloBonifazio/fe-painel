@@ -79,5 +79,5 @@ jobs:
         run: npm ci && npm run build   # gera ./dist (ajuste se o output for outro)
       - name: sync p/ S3 (versão + latest)
         run: |
-          aws s3 sync dist "s3://${{ vars.AWS_STATIC_BUCKET }}/fe-cep-painel/$VERSION/" --delete
-          aws s3 sync dist "s3://${{ vars.AWS_STATIC_BUCKET }}/fe-cep-painel/latest/" --delete
+          aws s3 sync dist/browser "s3://${{ vars.AWS_STATIC_BUCKET }}/fe-painel/$VERSION/" --delete
+          aws s3 sync dist/browser "s3://${{ vars.AWS_STATIC_BUCKET }}/fe-painel/latest/" --delete

@@ -1,0 +1,278 @@
+<div class="shell">
+  <aside class="sidebar">
+    <a class="brand" href="/painel/">S<span>core</span><b>●</b></a>
+    <div class="workspace-label">WORKSPACE</div>
+    <div class="workspace">Gestão de clientes <span>⌄</span></div>
+    <div class="nav-label">GERENCIAMENTO</div>
+    <a class="nav-active" href="/painel/"
+      >◫ <span>Clientes</span><small>{{data()?.totalElements ?? '—'}}</small></a
+    >
+    <div class="sidebar-bottom">
+      <span class="dot"></span> Ambiente de desenvolvimento
+    </div>
+  </aside>
+  <div class="main">
+    <header>
+      <div>Workspace <span>/</span> <strong>Clientes</strong></div>
+      <div class="account">
+        <span class="avatar">{{auth.username().slice(0,1).toUpperCase()}}</span>
+        <div>
+          {{auth.username()}}<small
+            >{{auth.admin() ? 'Administrador' : 'Consulta'}}</small
+          >
+        </div>
+        <button class="text-button" (click)="auth.logout()">Sair ↗</button>
+      </div>
+    </header>
+    <main>
+      <div class="eyebrow">RELACIONAMENTO & DADOS</div>
+      <div class="page-heading">
+        <div>
+          <h1>Clientes</h1>
+          <p>Gerencie sua base de clientes e consulte análises de crédito.</p>
+        </div>
+        @if(auth.admin()){<button class="primary" (click)="edit()">
+          ＋ Novo cliente</button
+        >}
+      </div>
+      <div class="stats">
+        <section>
+          <span>Clientes cadastrados</span
+          ><strong>{{data()?.totalElements ?? '—'}}</strong
+          ><small>Resultados da consulta atual</small>
+        </section>
+        <section>
+          <span>Seu acesso</span
+          ><strong class="stat-text"
+            >{{auth.admin() ? 'Administrador' : 'Consulta'}}</strong
+          ><small
+            >{{auth.admin() ? 'Gestão completa da base' : 'Leitura e consulta de
+            score'}}</small
+          >
+        </section>
+        <section>
+          <span>Integração de score</span
+          ><strong class="stat-text">Sob demanda</strong
+          ><small>Consulta externa pelo CPF do cliente</small>
+        </section>
+      </div>
+      @if(error()){
+      <div class="notice error" role="alert">{{error()}}</div>
+      }@if(success()){
+      <div class="notice success" role="status">{{success()}}</div>
+      }
+      <section class="list-card">
+        <div class="list-heading">
+          <h2>Base de clientes <span>{{data()?.totalElements ?? 0}}</span></h2>
+          <span class="muted">Dados centralizados, decisões melhores.</span>
+        </div>
+        <form class="filters" (ngSubmit)="filter()">
+          <label class="search"
+            ><span>⌕</span
+            ><input
+              name="search"
+              [(ngModel)]="name"
+              placeholder="Buscar cliente pelo nome"
+              aria-label="Buscar pelo nome"
+              maxlength="150" /></label
+          ><select
+            name="status"
+            [(ngModel)]="status"
+            [disabled]="!!name.trim()"
+            aria-label="Filtrar por status"
+          >
+            <option value="">Todos os status</option>
+            <option value="ACTIVE">Ativo</option>
+            <option value="INACTIVE">Inativo</option></select
+          ><button class="secondary" [disabled]="busy()">Filtrar</button>
+        </form>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>CLIENTE</th>
+                <th>CPF</th>
+                <th>STATUS</th>
+                <th>CADASTRO</th>
+                <th class="align-right">AÇÕES</th>
+              </tr>
+            </thead>
+            <tbody>
+              @if(busy()){
+              <tr>
+                <td colspan="5" class="empty">Carregando clientes…</td>
+              </tr>
+              }@else { @for(c of data()?.content; track c.id){
+              <tr>
+                <td>
+                  <div class="customer-name">
+                    <span class="customer-avatar"
+                      >{{c.name.slice(0,1).toUpperCase()}}</span
+                    >
+                    <div>
+                      <strong>{{c.name}}</strong><small>{{c.email}}</small>
+                    </div>
+                  </div>
+                </td>
+                <td class="mono">{{c.cpf}}</td>
+                <td>
+                  <span class="badge" [class.inactive]="c.status === 'INACTIVE'"
+                    ><i></i>{{c.status === 'ACTIVE' ? 'Ativo' :
+                    'Inativo'}}</span
+                  >
+                </td>
+                <td class="muted">{{c.createdAt | date:'dd/MM/yyyy'}}</td>
+                <td class="actions">
+                  <button (click)="showScore(c)" [disabled]="scoreBusy()">
+                    Score ↗</button
+                  >@if(auth.admin()){<button (click)="edit(c)">Editar</button
+                  ><button class="danger-text" (click)="deleting.set(c)">
+                    Excluir</button
+                  >}
+                </td>
+              </tr>
+              }@empty{
+              <tr>
+                <td colspan="5" class="empty">
+                  <strong>Nenhum cliente encontrado</strong>
+                  <p>Cadastre um cliente ou ajuste os filtros da busca.</p>
+                </td>
+              </tr>
+              }}
+            </tbody>
+          </table>
+        </div>
+        <footer>
+          <span>Página {{page + 1}} de {{data()?.totalPages || 1}}</span>
+          <div>
+            <button
+              class="secondary"
+              (click)="move(-1)"
+              [disabled]="page === 0 || busy()"
+            >
+              ← Anterior</button
+            ><button
+              class="secondary"
+              (click)="move(1)"
+              [disabled]="page + 1 >= (data()?.totalPages ?? 0) || busy()"
+            >
+              Próxima →
+            </button>
+          </div>
+        </footer>
+      </section>
+      <p class="footnote">SCORE PLATFORM <span>•</span> Gestão de clientes</p>
+    </main>
+  </div>
+</div>
+@if(editing()){
+<div class="overlay">
+  <section
+    class="dialog"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="edit-title"
+  >
+    <h2 id="edit-title">{{id === null ? 'Novo cliente' : 'Editar cliente'}}</h2>
+    <p>Preencha os dados para manter sua base atualizada.</p>
+    <form #customerForm="ngForm" (ngSubmit)="save()">
+      <label
+        >Nome completo<input
+          name="name"
+          [(ngModel)]="form.name"
+          required
+          maxlength="150"
+          autocomplete="name" /></label
+      ><label
+        >CPF<input
+          name="cpf"
+          [(ngModel)]="form.cpf"
+          required
+          pattern="[0-9]{11}"
+          maxlength="11"
+          inputmode="numeric"
+          placeholder="11 dígitos, sem pontuação" /></label
+      ><label
+        >E-mail<input
+          name="email"
+          [(ngModel)]="form.email"
+          required
+          email
+          maxlength="254"
+          type="email"
+          autocomplete="email" /></label
+      ><label
+        >Status<select name="customerStatus" [(ngModel)]="form.status">
+          <option value="ACTIVE">Ativo</option>
+          <option value="INACTIVE">Inativo</option>
+        </select></label
+      >@if(error()){
+      <div class="notice error" role="alert">{{error()}}</div>
+      }
+      <div class="dialog-actions">
+        <button
+          type="button"
+          class="secondary"
+          (click)="editing.set(false)"
+          [disabled]="saving()"
+        >
+          Cancelar</button
+        ><button class="primary" [disabled]="customerForm.invalid || saving()">
+          {{saving() ? 'Salvando…' : 'Salvar cliente'}}
+        </button>
+      </div>
+    </form>
+  </section>
+</div>
+} @if(deleting()){
+<div class="overlay">
+  <section
+    class="dialog"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="delete-title"
+  >
+    <h2 id="delete-title">Excluir cliente?</h2>
+    <p>
+      O cadastro de <strong>{{deleting()?.name}}</strong> será excluído. Esta
+      ação não pode ser desfeita.
+    </p>
+    @if(error()){
+    <p role="alert">{{error()}}</p>
+    }
+    <div class="dialog-actions">
+      <button
+        class="secondary"
+        (click)="deleting.set(null)"
+        [disabled]="saving()"
+      >
+        Cancelar</button
+      ><button class="danger" (click)="remove()" [disabled]="saving()">
+        Confirmar exclusão
+      </button>
+    </div>
+  </section>
+</div>
+} @if(scoreCustomer()){
+<div class="overlay">
+  <section
+    class="dialog"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="score-title"
+  >
+    <div class="eyebrow">ANÁLISE DE CRÉDITO</div>
+    <h2 id="score-title">{{scoreCustomer()}}</h2>
+    @if(scoreBusy()){
+    <p>Consultando serviço de Score…</p>
+    }@else{
+    <div class="score-number">{{score()?.score}}<small>/ 1000</small></div>
+    <span class="badge">{{score()?.classification}}</span>
+    <p>Resultado retornado pelo serviço externo.</p>
+    }
+    <div class="dialog-actions">
+      <button class="secondary" (click)="scoreCustomer.set('')">Fechar</button>
+    </div>
+  </section>
+</div>
+}

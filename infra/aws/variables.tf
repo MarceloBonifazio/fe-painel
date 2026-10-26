@@ -1,6 +1,6 @@
 variable "name" {
   type    = string
-  default = "fe-cep-painel"
+  default = "fe-painel"
 }
 
 variable "port" {
@@ -15,7 +15,7 @@ variable "image" {
 
 variable "domain" {
   type    = string
-  default = "fe-cep-painel.local"
+  default = "fe-painel.local"
 }
 
 variable "region" {

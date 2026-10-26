@@ -1,4 +1,4 @@
-// Cliente REST do `fe-cep-painel` (SPA) — fetch básico p/ uma API do backend (servida em /api/<rota>).
+// Cliente REST do `fe-painel` (SPA) — fetch básico p/ uma API do backend (servida em /api/<rota>).
 // Sem deps. baseUrl same-origin por padrão; passe '/api/<rota>' ao criar. Lança em status != 2xx.
 // Uso:
 //   import { makeApi } from './lib/restClient';

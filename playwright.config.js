@@ -1,6 +1,11 @@
-import { defineConfig } from '@playwright/test';
-// E2E config-only — escreva os specs em e2e/. NÃO roda no gate de release/prod (só unit+cobertura barram).
+import { defineConfig } from "@playwright/test";
 export default defineConfig({
-  testDir: './e2e',
-  use: { baseURL: process.env.E2E_BASE_URL || 'http://localhost:8088/painel/' },
+  testDir: "./e2e",
+  workers: 1,
+  timeout: 60000,
+  use: {
+    baseURL: process.env.E2E_BASE_URL || "http://localhost:8088/painel/",
+    trace: "retain-on-failure",
+    screenshot: "only-on-failure",
+  },
 });

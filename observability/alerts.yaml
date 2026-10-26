@@ -1,8 +1,8 @@
-# Alertas/SLOs do workload fe-cep-painel — VIVEM NO REPO do workload (observability/alerts.yaml).
+# Alertas/SLOs do workload fe-painel — VIVEM NO REPO do workload (observability/alerts.yaml).
 # Unified alerting do Grafana (provisioning v1): o _service.yml monta este arquivo em
-# /etc/grafana/provisioning/alerting/fe-cep-painel.yaml e o Grafana carrega como regras na folder "workloads".
+# /etc/grafana/provisioning/alerting/fe-painel.yaml e o Grafana carrega como regras na folder "workloads".
 #
-# GERADO: `make regenerate-obs NAME=fe-cep-painel` reescreve este arquivo. Para customizar, trave com o
+# GERADO: `make regenerate-obs NAME=fe-painel` reescreve este arquivo. Para customizar, trave com o
 # configs/.regenerate-lock (ver README do workload) — senão o próximo regenerate sobrescreve.
 #
 # Os thresholds saem do bloco `observability.slo` do project.yaml (fonte da verdade) e as expressões
@@ -11,21 +11,21 @@
 apiVersion: 1
 groups:
   - orgId: 1
-    name: fe-cep-painel-slo
+    name: fe-painel-slo
     folder: workloads
     interval: 1m
     rules:
       # SLO de latência: p95 acima do alvo declarado (500ms) por 5m.
       # Fonte: histograma do Traefik (o /metrics deste kind não expõe request duration).
-      - uid: wl-fe-cep-painel-p95
-        title: "fe-cep-painel · p95 de latência > 500ms (SLO)"
+      - uid: wl-fe-painel-p95
+        title: "fe-painel · p95 de latência > 500ms (SLO)"
         condition: C
         for: 5m
         labels:
           severity: warning
-          workload: "fe-cep-painel"
+          workload: "fe-painel"
         annotations:
-          summary: "p95 de latência do fe-cep-painel acima de 500ms nos últimos 5m (alvo do SLO)"
+          summary: "p95 de latência do fe-painel acima de 500ms nos últimos 5m (alvo do SLO)"
         data:
           - refId: A
             relativeTimeRange: { from: 600, to: 0 }
@@ -34,7 +34,7 @@ groups:
               refId: A
               instant: true
               editorMode: code
-              expr: "histogram_quantile(0.95, sum by (le) (rate(traefik_traefik_service_request_duration_seconds_bucket{service=~\"fe-cep-painel@.*\"}[5m])))"
+              expr: "histogram_quantile(0.95, sum by (le) (rate(traefik_traefik_service_request_duration_seconds_bucket{service=~\"fe-painel@.*\"}[5m])))"
           - refId: C
             relativeTimeRange: { from: 600, to: 0 }
             datasourceUid: __expr__
@@ -47,15 +47,15 @@ groups:
       # Taxa de erro acima do que o SLO tolera: 99.9% de disponibilidade deixa
       # 0.1% de 5xx. Queimar mais que isso por 5m consome o error budget
       # (43min em 30d) mais rápido do que a janela repõe.
-      - uid: wl-fe-cep-painel-5xx
-        title: "fe-cep-painel · taxa de 5xx > 0.1% (SLO)"
+      - uid: wl-fe-painel-5xx
+        title: "fe-painel · taxa de 5xx > 0.1% (SLO)"
         condition: C
         for: 5m
         labels:
           severity: critical
-          workload: "fe-cep-painel"
+          workload: "fe-painel"
         annotations:
-          summary: "5xx do fe-cep-painel acima de 0.1% nos últimos 5m — consumindo o error budget"
+          summary: "5xx do fe-painel acima de 0.1% nos últimos 5m — consumindo o error budget"
         data:
           - refId: A
             relativeTimeRange: { from: 600, to: 0 }
@@ -64,7 +64,7 @@ groups:
               refId: A
               instant: true
               editorMode: code
-              expr: "sum(rate(traefik_traefik_service_requests_total{service=~\"fe-cep-painel@.*\",code=~\"5..\"}[5m])) / clamp_min(sum(rate(traefik_traefik_service_requests_total{service=~\"fe-cep-painel@.*\"}[5m])), 0.001)"
+              expr: "sum(rate(traefik_traefik_service_requests_total{service=~\"fe-painel@.*\",code=~\"5..\"}[5m])) / clamp_min(sum(rate(traefik_traefik_service_requests_total{service=~\"fe-painel@.*\"}[5m])), 0.001)"
           - refId: C
             relativeTimeRange: { from: 600, to: 0 }
             datasourceUid: __expr__

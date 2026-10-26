@@ -1,10 +1,10 @@
-# Fragmento de compose do `fe-cep-painel` (spa · node/angular) — DEV. GERADO.
+# Fragmento de compose do `fe-painel` (spa · node/angular) — DEV. GERADO.
 # Auto-registro no Traefik via labels.
 # Composto com a base por `compose.gen.mjs` (make up). Rede `platform` vem da base.
 services:
-  fe-cep-painel:
+  fe-painel:
     build:
-      context: ./projects/fe-cep-painel
+      context: ./projects/fe-painel
       # UM Dockerfile, dois targets. O de prod está no service.prod.yml, que sobrepõe este bloco.
       # Eram dois arquivos que divergiam em silêncio — correção num não chegava no outro.
       dockerfile: Dockerfile
@@ -18,14 +18,15 @@ services:
       BASE_PATH: "/painel/"
       APP_ENV: development
       NODE_ENV: development
+      NODE_OPTIONS: "--max-old-space-size=512"
       # Hot-reload sobre bind-mount (polling — robusto no Docker Desktop/macOS).
       CHOKIDAR_USEPOLLING: "true"
       WATCHFILES_FORCE_POLLING: "true"
       DOTNET_USE_POLLING_FILE_WATCHER: "true"
-      # Segredos: namespace dedicado no Vault (secret/fe-cep-painel/dev).
+      # Segredos: namespace dedicado no Vault (secret/fe-painel/dev).
       VAULT_ADDR: "http://vault:8200"
       VAULT_TOKEN: "${VAULT_TOKEN:-dev-root-token}"
-      VAULT_SECRET_PATH: "secret/data/fe-cep-painel/dev"
+      VAULT_SECRET_PATH: "secret/data/fe-painel/dev"
       # Cloud local: floci-aws (imagem/porta próprias por cloud). "Tudo via floci" em dev.
       # Envs específicas da cloud: AWS SDK · Azure connection string · GCP emulator hosts.
       AWS_ENDPOINT_URL: "http://floci-aws:4566"
@@ -34,22 +35,22 @@ services:
       AWS_SECRET_ACCESS_KEY: "test"
 
     volumes:
-      - ./projects/fe-cep-painel:/app          # hot-reload (bind-mount do source)
+      - ./projects/fe-painel:/app          # hot-reload (bind-mount do source)
       - /app/node_modules                 # preserva deps/artefatos da imagem
     networks: [platform]
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=platform"
       # frontend → http://localhost:8088/painel (sem strip; servido com base /painel/)
-      - "traefik.http.routers.fe-cep-painel.rule=PathPrefix(`/painel`)"
-      - "traefik.http.routers.fe-cep-painel.entrypoints=web"
-      - "traefik.http.services.fe-cep-painel.loadbalancer.server.port=3000"
+      - "traefik.http.routers.fe-painel.rule=PathPrefix(`/painel`)"
+      - "traefik.http.routers.fe-painel.entrypoints=web"
+      - "traefik.http.services.fe-painel.loadbalancer.server.port=3000"
 
   # Dashboard + alertas/SLOs do workload no Grafana (provisionados a partir do REPO do workload:
-  # projects/fe-cep-painel/observability/). Merge no service `grafana` da base → o provider "workloads"
-  # carrega o dashboard como folder "fe-cep-painel" (recarrega ao editar, 10s); o alerts.yaml entra no
+  # projects/fe-painel/observability/). Merge no service `grafana` da base → o provider "workloads"
+  # carrega o dashboard como folder "fe-painel" (recarrega ao editar, 10s); o alerts.yaml entra no
   # unified-alerting provisioning como regras na folder "workloads".
   grafana:
     volumes:
-      - ./projects/fe-cep-painel/observability:/workload-dashboards/fe-cep-painel:ro
-      - ./projects/fe-cep-painel/observability/alerts.yaml:/etc/grafana/provisioning/alerting/fe-cep-painel.yaml:ro
+      - ./projects/fe-painel/observability:/workload-dashboards/fe-painel:ro
+      - ./projects/fe-painel/observability/alerts.yaml:/etc/grafana/provisioning/alerting/fe-painel.yaml:ro

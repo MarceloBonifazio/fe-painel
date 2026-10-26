@@ -1,59 +1,35 @@
-# App
+# score — painel de clientes
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 22.0.3.
+SPA Angular 22 com login OAuth2/OIDC Authorization Code + PKCE (Keycloak). USER consulta clientes e Score; ADMIN também cadastra, edita e exclui. A API aplica a autorização independentemente da interface.
 
-## Development server
+## Executar
 
-To start a local development server, run:
+Use a stack completa documentada em `../be-api/README.md`. URL: **http://localhost:8088/painel/**.
 
-```bash
-ng serve
+Logins locais: `admin` / `admin-dev` e `user` / `user-dev`.
+
+Para desenvolvimento com Node compatível com Angular 22:
+
+```sh
+npm ci
+npm start -- --host 0.0.0.0 --port 3000 --serve-path /painel/
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+O gateway deve encaminhar `/painel` para este servidor. Keycloak e API precisam estar acessíveis no mesmo gateway.
 
-## Code scaffolding
+## Configuração
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+`public/config.json` contém URLs públicas de API/Keycloak, realm e clientId. Não contém segredos. Em produção substitua esse arquivo no artefato servido. Tokens ficam em memória pelo adaptador oficial, nunca em localStorage; o interceptor os envia apenas para o caminho da API configurada e atualiza antes do vencimento.
 
-```bash
-ng generate component component-name
+Todas as telas de negócio têm guarda e só são renderizadas após autenticação. As rotas OAuth e os arquivos estáticos ficam públicos para permitir o login. O servidor de produção Nginx mantém o base path `/painel/` e o fallback da SPA.
+
+## Qualidade
+
+```sh
+npm run build
+npm test -- --watch=false
+npx playwright install chromium
+npm run test:e2e
 ```
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
-
-```bash
-ng generate --help
-```
-
-## Building
-
-To build the project run:
-
-```bash
-ng build
-```
-
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
-
-```bash
-ng test
-```
-
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+Os testes E2E precisam da stack local ativa e usam os dois perfis no Keycloak. Cadastros temporários são removidos após os cenários. A suíte unitária testa permissões do painel e o escopo do interceptor Bearer.

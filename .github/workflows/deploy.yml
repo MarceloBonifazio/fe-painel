@@ -28,7 +28,7 @@ jobs:
           aws-region: ${{ vars.AWS_REGION }}
       - name: gate — artefato $TAG existe na cloud?
         run: |
-          aws s3 ls "s3://${{ vars.AWS_STATIC_BUCKET }}/fe-cep-painel/$TAG/" >/dev/null
+          aws s3 ls "s3://${{ vars.AWS_STATIC_BUCKET }}/fe-painel/$TAG/" >/dev/null
 
   test:
     runs-on: ubuntu-latest
@@ -74,5 +74,5 @@ jobs:
           aws-region: ${{ vars.AWS_REGION }}
       - name: re-sync latest + invalida CloudFront
         run: |
-          aws s3 sync "s3://${{ vars.AWS_STATIC_BUCKET }}/fe-cep-painel/$TAG/" "s3://${{ vars.AWS_STATIC_BUCKET }}/fe-cep-painel/latest/" --delete
-          aws cloudfront create-invalidation --distribution-id ${{ vars.AWS_CF_DISTRIBUTION_ID }} --paths "/fe-cep-painel/latest/*"
+          aws s3 sync "s3://${{ vars.AWS_STATIC_BUCKET }}/fe-painel/$TAG/" "s3://${{ vars.AWS_STATIC_BUCKET }}/fe-painel/latest/" --delete
+          aws cloudfront create-invalidation --distribution-id ${{ vars.AWS_CF_DISTRIBUTION_ID }} --paths "/fe-painel/latest/*"

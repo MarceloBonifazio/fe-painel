@@ -1,11 +1,24 @@
-import { Component, signal } from '@angular/core';
-
+import { Component, inject } from "@angular/core";
+import { RouterOutlet } from "@angular/router";
+import { Auth } from "./auth";
 @Component({
-  selector: 'app-root',
-  imports: [],
-  templateUrl: './app.html',
-  styleUrl: './app.css'
+  selector: "app-root",
+  imports: [RouterOutlet],
+  template: `
+    @if (auth.error()) {
+      <main class="auth-error" role="alert">
+        <h1>Autenticação indisponível</h1>
+        <p>{{ auth.error() }}</p>
+        <button (click)="reload()">Tentar novamente</button>
+      </main>
+    } @else if (auth.ready()) {
+      <router-outlet />
+    }
+  `,
 })
 export class App {
-  protected readonly title = signal('app');
+  readonly auth = inject(Auth);
+  reload() {
+    location.reload();
+  }
 }

@@ -1,4 +1,4 @@
-// Registra os hooks de resolução do alias `@/` do `fe-cep-painel` (ver alias-hooks.mjs).
+// Registra os hooks de resolução do alias `@/` do `fe-painel` (ver alias-hooks.mjs).
 //
 // Usado só no flavor JAVASCRIPT: `node --import ./configs/alias-loader.mjs src/index.mjs`. No flavor
 // TypeScript quem resolve `@/` é o tsconfig.json#paths, que o tsx lê sozinho — lá este arquivo não
