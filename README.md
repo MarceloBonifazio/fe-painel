@@ -4,7 +4,7 @@ SPA Angular 22 com login OAuth2/OIDC Authorization Code + PKCE (Keycloak). USER 
 
 ## Arquitetura e requisitos
 
-O frontend é uma SPA Angular 22 servida pelo container Node e publicada pelo gateway do Nucleus em `/painel/`. Usa Keycloak via Authorization Code + PKCE S256 e chama o `be-api` com Bearer Token. Não há Nginx no projeto. Requer Docker/Compose para a stack completa ou Node compatível com Angular 22.
+O frontend é uma SPA Angular 22 servida pelo container Node e publicada pelo gateway do orquestrador em `/painel/`. Usa Keycloak via Authorization Code + PKCE S256 e chama o `be-api` com Bearer Token. Não há Nginx no projeto. Requer Docker/Compose para a stack completa ou Node compatível com Angular 22.
 
 ## Executar
 
@@ -12,7 +12,7 @@ Use a stack completa documentada em `../be-api/README.md`. URL: **http://localho
 
 Logins locais: `admin` / `admin-dev` e `user` / `user-dev`.
 
-Para iniciar as dependências (API, PostgreSQL, Kafka, Keycloak e WireMock), siga o README do `be-api` ou, na raiz do Nucleus, execute `make up-staged`.
+Para iniciar as dependências (API, PostgreSQL, Kafka, Keycloak e WireMock), siga o README do `be-api` ou, na raiz do orquestrador, execute `make up-staged`.
 
 Para desenvolvimento com Node compatível com Angular 22:
 
