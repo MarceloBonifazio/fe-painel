@@ -21,7 +21,7 @@ npm ci
 npm start -- --host 0.0.0.0 --port 3000 --serve-path /painel/
 ```
 
-O gateway deve encaminhar `/painel` para este servidor. Keycloak e API precisam estar acessíveis no mesmo gateway.
+Para usar esse servidor de desenvolvimento atrás do gateway, remova o middleware `strip-frontend` da rota `frontend` em `../be-api/dev/routes.yml`: o `ng serve` já atende em `/painel/`. Na stack Docker com target `runner`, mantenha esse middleware para remover `/painel` antes de buscar os arquivos estáticos na raiz do servidor. Keycloak e API precisam estar acessíveis no mesmo gateway.
 
 ## Configuração
 
@@ -33,7 +33,7 @@ Ao abrir http://localhost:8088/painel/, o login redireciona para Keycloak. Use `
 
 O contrato completo e exemplos interativos estão no Scalar: http://localhost:8088/api/be-api/docs. O OpenAPI bruto está em http://localhost:8088/api/be-api/openapi.json. As operações usadas são `GET /customers`, `GET /customers/search`, `GET /customers/{id}/score` e, para ADMIN, `POST`, `PUT` e `DELETE /customers`.
 
-Todas as telas de negócio têm guarda e só são renderizadas após autenticação. As rotas OAuth e os arquivos estáticos ficam públicos para permitir o login. O servidor de produção Nginx mantém o base path `/painel/` e o fallback da SPA.
+Todas as telas de negócio têm guarda e só são renderizadas após autenticação. As rotas OAuth e os arquivos estáticos ficam públicos para permitir o login. O servidor Node usa fallback da SPA; o gateway remove o prefixo `/painel` e o Angular mantém o base path `/painel/`.
 
 ## Qualidade
 
