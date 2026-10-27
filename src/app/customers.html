@@ -1,278 +1,846 @@
-<div class="shell">
-  <aside class="sidebar">
-    <a class="brand" href="/painel/">S<span>core</span><b>●</b></a>
-    <div class="workspace-label">WORKSPACE</div>
-    <div class="workspace">Gestão de clientes <span>⌄</span></div>
-    <div class="nav-label">GERENCIAMENTO</div>
-    <a class="nav-active" href="/painel/"
-      >◫ <span>Clientes</span><small>{{data()?.totalElements ?? '—'}}</small></a
+<div class="shell" [class.sidebar-expanded]="sidebarOpen()">
+  @if (sidebarOpen()) {
+    <button
+      class="sidebar-backdrop"
+      aria-label="Fechar menu"
+      (click)="sidebarOpen.set(false)"
+    ></button>
+  }
+  <aside class="sidebar" aria-label="Navegação principal">
+    <a class="brand" href="/painel/"
+      ><span class="brand-mark"><app-icon name="shield" /></span
+      ><span>CrediScore<small>Customer Risk Platform</small></span></a
     >
+    <nav>
+      <button [class.nav-active]="nav() === 'dashboard'" (click)="navigate('dashboard')">
+        <app-icon name="home" />Dashboard
+      </button>
+      <button [class.nav-active]="nav() === 'customers'" (click)="navigate('customers')">
+        <app-icon name="users" />Clientes
+      </button>
+      @if (auth.admin()) {
+        <button [class.nav-active]="nav() === 'events'" (click)="navigate('events')">
+          <app-icon name="activity" />Eventos <small>(Kafka)</small>
+        </button>
+      }
+      <button [class.nav-active]="nav() === 'settings'" (click)="navigate('settings')">
+        <app-icon name="settings" />Configurações
+      </button>
+    </nav>
     <div class="sidebar-bottom">
-      <span class="dot"></span> Ambiente de desenvolvimento
+      <div class="profile-card">
+        <span class="profile-icon"><app-icon name="user" /></span>
+        <div>
+          <small>Perfil atual</small
+          ><span class="role-pill">{{ auth.admin() ? 'ADMIN' : 'USER' }}</span>
+        </div>
+      </div>
+      <button class="logout" (click)="auth.logout()"><app-icon name="logout" />Sair</button>
     </div>
   </aside>
   <div class="main">
-    <header>
-      <div>Workspace <span>/</span> <strong>Clientes</strong></div>
-      <div class="account">
-        <span class="avatar">{{auth.username().slice(0,1).toUpperCase()}}</span>
-        <div>
-          {{auth.username()}}<small
-            >{{auth.admin() ? 'Administrador' : 'Consulta'}}</small
+    <header class="topbar">
+      <button
+        class="icon-button mobile-menu"
+        aria-label="Abrir menu"
+        (click)="sidebarOpen.set(!sidebarOpen())"
+      >
+        <app-icon name="menu" />
+      </button>
+      <form class="global-search search" (ngSubmit)="filter()">
+        <app-icon name="search" /><input
+          name="globalSearch"
+          [(ngModel)]="name"
+          maxlength="150"
+          placeholder="Buscar por nome, CPF ou e-mail..."
+          aria-label="Busca global por nome, CPF ou e-mail"
+        /><button class="sr-only" type="submit">Buscar clientes</button>
+      </form>
+      <div class="topbar-account">
+        @if (auth.admin()) {
+          <button
+            class="icon-button notification-button"
+            aria-label="Ver eventos recentes"
+            title="Ver eventos recentes"
+            (click)="navigate('events')"
           >
-        </div>
-        <button class="text-button" (click)="auth.logout()">Sair ↗</button>
+            <app-icon name="bell" />
+          </button>
+        }
+        <span class="avatar">{{ initials(auth.username()) }}</span
+        ><button class="account-button" (click)="navigate('settings')">
+          <span
+            >{{ auth.username() }}<small>{{ auth.admin() ? 'ADMIN' : 'USER' }}</small></span
+          ><app-icon name="down" />
+        </button>
       </div>
     </header>
     <main>
-      <div class="eyebrow">RELACIONAMENTO & DADOS</div>
       <div class="page-heading">
-        <div>
-          <h1>Clientes</h1>
-          <p>Gerencie sua base de clientes e consulte análises de crédito.</p>
-        </div>
-        @if(auth.admin()){<button class="primary" (click)="edit()">
-          ＋ Novo cliente</button
-        >}
-      </div>
-      <div class="stats">
-        <section>
-          <span>Clientes cadastrados</span
-          ><strong>{{data()?.totalElements ?? '—'}}</strong
-          ><small>Resultados da consulta atual</small>
-        </section>
-        <section>
-          <span>Seu acesso</span
-          ><strong class="stat-text"
-            >{{auth.admin() ? 'Administrador' : 'Consulta'}}</strong
-          ><small
-            >{{auth.admin() ? 'Gestão completa da base' : 'Leitura e consulta de
-            score'}}</small
+        <div class="heading-with-menu">
+          <button
+            class="icon-button desktop-menu"
+            aria-label="Alternar menu"
+            (click)="sidebarOpen.set(!sidebarOpen())"
           >
-        </section>
-        <section>
-          <span>Integração de score</span
-          ><strong class="stat-text">Sob demanda</strong
-          ><small>Consulta externa pelo CPF do cliente</small>
-        </section>
-      </div>
-      @if(error()){
-      <div class="notice error" role="alert">{{error()}}</div>
-      }@if(success()){
-      <div class="notice success" role="status">{{success()}}</div>
-      }
-      <section class="list-card">
-        <div class="list-heading">
-          <h2>Base de clientes <span>{{data()?.totalElements ?? 0}}</span></h2>
-          <span class="muted">Dados centralizados, decisões melhores.</span>
-        </div>
-        <form class="filters" (ngSubmit)="filter()">
-          <label class="search"
-            ><span>⌕</span
-            ><input
-              name="search"
-              [(ngModel)]="name"
-              placeholder="Buscar cliente pelo nome"
-              aria-label="Buscar pelo nome"
-              maxlength="150" /></label
-          ><select
-            name="status"
-            [(ngModel)]="status"
-            [disabled]="!!name.trim()"
-            aria-label="Filtrar por status"
-          >
-            <option value="">Todos os status</option>
-            <option value="ACTIVE">Ativo</option>
-            <option value="INACTIVE">Inativo</option></select
-          ><button class="secondary" [disabled]="busy()">Filtrar</button>
-        </form>
-        <div class="table-scroll">
-          <table>
-            <thead>
-              <tr>
-                <th>CLIENTE</th>
-                <th>CPF</th>
-                <th>STATUS</th>
-                <th>CADASTRO</th>
-                <th class="align-right">AÇÕES</th>
-              </tr>
-            </thead>
-            <tbody>
-              @if(busy()){
-              <tr>
-                <td colspan="5" class="empty">Carregando clientes…</td>
-              </tr>
-              }@else { @for(c of data()?.content; track c.id){
-              <tr>
-                <td>
-                  <div class="customer-name">
-                    <span class="customer-avatar"
-                      >{{c.name.slice(0,1).toUpperCase()}}</span
-                    >
-                    <div>
-                      <strong>{{c.name}}</strong><small>{{c.email}}</small>
-                    </div>
-                  </div>
-                </td>
-                <td class="mono">{{c.cpf}}</td>
-                <td>
-                  <span class="badge" [class.inactive]="c.status === 'INACTIVE'"
-                    ><i></i>{{c.status === 'ACTIVE' ? 'Ativo' :
-                    'Inativo'}}</span
-                  >
-                </td>
-                <td class="muted">{{c.createdAt | date:'dd/MM/yyyy'}}</td>
-                <td class="actions">
-                  <button (click)="showScore(c)" [disabled]="scoreBusy()">
-                    Score ↗</button
-                  >@if(auth.admin()){<button (click)="edit(c)">Editar</button
-                  ><button class="danger-text" (click)="deleting.set(c)">
-                    Excluir</button
-                  >}
-                </td>
-              </tr>
-              }@empty{
-              <tr>
-                <td colspan="5" class="empty">
-                  <strong>Nenhum cliente encontrado</strong>
-                  <p>Cadastre um cliente ou ajuste os filtros da busca.</p>
-                </td>
-              </tr>
-              }}
-            </tbody>
-          </table>
-        </div>
-        <footer>
-          <span>Página {{page + 1}} de {{data()?.totalPages || 1}}</span>
+            <app-icon name="menu" />
+          </button>
           <div>
-            <button
-              class="secondary"
-              (click)="move(-1)"
-              [disabled]="page === 0 || busy()"
+            <div class="breadcrumb">{{ title() }}</div>
+            <h1>{{ title() }}</h1>
+            <p>
+              {{
+                nav() === 'customers'
+                  ? 'Gerencie os clientes e consulte o score de crédito'
+                  : nav() === 'dashboard'
+                    ? 'Acompanhe sua base de clientes e os indicadores de crédito'
+                    : nav() === 'events'
+                      ? 'Acompanhe as atividades e alterações na sua base de clientes'
+                      : 'Informações da conta e do ambiente de trabalho'
+              }}
+            </p>
+          </div>
+        </div>
+        @if (auth.admin() && (nav() === 'customers' || nav() === 'dashboard')) {
+          <button class="primary new-customer" (click)="edit()">
+            <app-icon name="plus" />Novo cliente
+          </button>
+        }
+      </div>
+      @if (nav() === 'customers' || nav() === 'dashboard') {
+        <div class="stats">
+          <section class="stat-card">
+            <span class="stat-icon blue"><app-icon name="users" /></span>
+            <div>
+              <span>Total de clientes</span><strong>{{ number(summary()?.total) }}</strong
+              ><small>{{ number(summary()?.newThisMonth) }} cadastros neste mês</small>
+            </div>
+          </section>
+          <section class="stat-card">
+            <span class="stat-icon green"><app-icon name="check" /></span>
+            <div>
+              <span>Clientes ativos</span><strong>{{ number(summary()?.active) }}</strong
+              ><small>{{ percent(summary()?.active) }} do total</small>
+            </div>
+          </section>
+          <section class="stat-card">
+            <span class="stat-icon red"><app-icon name="warning" /></span>
+            <div>
+              <span>Clientes inativos</span><strong>{{ number(summary()?.inactive) }}</strong
+              ><small>{{ percent(summary()?.inactive) }} do total</small>
+            </div>
+          </section>
+          <section class="stat-card">
+            <span class="stat-icon blue"><app-icon name="gauge" /></span>
+            <div>
+              <span>Score médio</span><strong>{{ number(summary()?.averageScore) }}</strong
+              ><small>{{ number(summary()?.scoredCustomers) }} clientes com score</small>
+            </div>
+          </section>
+        </div>
+        @if (summaryError()) {
+          <div class="notice error" role="alert">
+            {{ summaryError()
+            }}<button class="text-button" (click)="loadSummary()">Tentar novamente</button>
+          </div>
+        }
+        @if (nav() === 'dashboard') {
+          <section class="dashboard-card">
+            <div>
+              <span class="eyebrow">VISÃO DA CARTEIRA</span>
+              <h2>Sua base, em perspectiva</h2>
+              <p>
+                Indicadores calculados a partir dos clientes cadastrados e das últimas consultas de
+                score.
+              </p>
+            </div>
+            <div class="portfolio">
+              <div>
+                <span>Clientes ativos</span><strong>{{ percent(summary()?.active) }}</strong>
+              </div>
+              <div class="progress"><span [style.width]="percent(summary()?.active)"></span></div>
+              <div class="portfolio-legend">
+                <span><i></i>Ativos: {{ number(summary()?.active) }}</span
+                ><span><i class="red-dot"></i>Inativos: {{ number(summary()?.inactive) }}</span>
+              </div>
+            </div>
+          </section>
+        }
+        @if (error() && !editing() && !deleting()) {
+          <div class="notice error" role="alert">
+            <app-icon name="warning" />{{ error()
+            }}<button class="text-button" (click)="load()">Tentar novamente</button>
+          </div>
+        }
+        @if (success()) {
+          <div class="notice success" role="status"><app-icon name="check" />{{ success() }}</div>
+        }
+        <section class="list-card" aria-label="Lista de clientes">
+          <form class="filters" (ngSubmit)="filter()">
+            <select
+              name="status"
+              [(ngModel)]="status"
+              (ngModelChange)="filter()"
+              aria-label="Filtrar por status"
             >
-              ← Anterior</button
-            ><button
-              class="secondary"
-              (click)="move(1)"
-              [disabled]="page + 1 >= (data()?.totalPages ?? 0) || busy()"
+              <option value="">Todos os status</option>
+              <option value="ACTIVE">Ativo</option>
+              <option value="INACTIVE">Inativo</option></select
+            ><label class="search"
+              ><app-icon name="search" /><input
+                name="search"
+                [(ngModel)]="name"
+                placeholder="Buscar por nome, CPF ou e-mail..."
+                aria-label="Buscar por nome, CPF ou e-mail"
+                maxlength="150" /></label
+            ><button class="secondary filter-submit" [disabled]="busy()" type="submit">
+              Filtrar</button
+            ><button class="secondary clear-filters" type="button" (click)="clearFilters()">
+              <app-icon name="reset" />Limpar filtros
+            </button>
+          </form>
+          <div class="table-scroll" [attr.aria-busy]="busy()">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Nome</th>
+                  <th>CPF</th>
+                  <th>E-mail</th>
+                  <th>Status</th>
+                  <th>Score</th>
+                  <th>Classificação</th>
+                  <th class="align-center">Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                @if (busy()) {
+                  <tr>
+                    <td colspan="8" class="empty">
+                      <span class="spinner"></span>Carregando clientes…
+                    </td>
+                  </tr>
+                } @else if (error() && !data()) {
+                  <tr>
+                    <td colspan="8" class="empty">Não foi possível carregar os clientes.</td>
+                  </tr>
+                } @else {
+                  @for (c of data()?.content; track c.id) {
+                    <tr>
+                      <td class="id-cell">{{ c.id }}</td>
+                      <td>
+                        <button class="customer-link" (click)="showDetails(c)">{{ c.name }}</button>
+                      </td>
+                      <td class="cpf-cell">{{ formatCpf(c.cpf) }}</td>
+                      <td class="email-cell">{{ c.email }}</td>
+                      <td>
+                        <span class="badge" [class.inactive]="c.status === 'INACTIVE'">{{
+                          c.status === 'ACTIVE' ? 'Ativo' : 'Inativo'
+                        }}</span>
+                      </td>
+                      <td class="score-cell">{{ c.score ?? '–' }}</td>
+                      <td>
+                        <span
+                          class="risk-badge"
+                          [class]="'risk-badge ' + riskClass(c.classification)"
+                          >{{ riskName(c.classification) }}</span
+                        >
+                      </td>
+                      <td>
+                        <div class="actions">
+                          <button
+                            class="icon-button"
+                            aria-label="Ver detalhes"
+                            title="Ver detalhes"
+                            (click)="showDetails(c)"
+                          >
+                            <app-icon name="eye" /></button
+                          ><button
+                            class="icon-button score-action"
+                            aria-label="Score"
+                            title="Consultar score"
+                            [disabled]="scoreBusy()"
+                            (click)="showScore(c)"
+                          >
+                            <app-icon name="gauge" />
+                          </button>
+                          @if (auth.admin()) {
+                            <button
+                              class="icon-button"
+                              aria-label="Editar"
+                              title="Editar cliente"
+                              (click)="edit(c)"
+                            >
+                              <app-icon name="edit" /></button
+                            ><button
+                              class="icon-button danger-outline"
+                              aria-label="Excluir"
+                              title="Excluir cliente"
+                              (click)="confirmDelete(c)"
+                            >
+                              <app-icon name="trash" />
+                            </button>
+                          }
+                        </div>
+                      </td>
+                    </tr>
+                  } @empty {
+                    <tr>
+                      <td colspan="8" class="empty">
+                        <span class="empty-icon"><app-icon name="users" /></span
+                        ><strong>Nenhum cliente encontrado</strong>
+                        <p>Cadastre um cliente ou ajuste os filtros da busca.</p>
+                        @if (auth.admin() && !name && !status) {
+                          <button class="primary" (click)="edit()">
+                            <app-icon name="plus" />Cadastrar primeiro cliente
+                          </button>
+                        }
+                      </td>
+                    </tr>
+                  }
+                }
+              </tbody>
+            </table>
+          </div>
+          <footer class="pagination">
+            <span
+              >Mostrando {{ firstItem }} a {{ lastItem }} de
+              {{ number(data()?.totalElements ?? 0) }} clientes</span
             >
-              Próxima →
+            <nav aria-label="Paginação">
+              <button
+                class="page-button previous"
+                aria-label="Página anterior"
+                [disabled]="page === 0 || busy()"
+                (click)="move(-1)"
+              >
+                <app-icon name="chevron" />
+              </button>
+              @if ((pages()[0] ?? 0) > 0) {
+                <button class="page-button" (click)="goTo(0)" [disabled]="busy()">1</button
+                ><span class="ellipsis">…</span>
+              }
+              @for (p of pages(); track p) {
+                <button
+                  class="page-button"
+                  [class.current]="p === page"
+                  [attr.aria-current]="p === page ? 'page' : null"
+                  [disabled]="busy()"
+                  (click)="goTo(p)"
+                >
+                  {{ p + 1 }}
+                </button>
+              }
+              @if ((pages().at(-1) ?? 0) < (data()?.totalPages ?? 0) - 1) {
+                <span class="ellipsis">…</span
+                ><button
+                  class="page-button"
+                  [disabled]="busy()"
+                  (click)="goTo((data()?.totalPages ?? 1) - 1)"
+                >
+                  {{ data()?.totalPages }}
+                </button>
+              }
+              <button
+                class="page-button"
+                aria-label="Próxima página"
+                [disabled]="page + 1 >= (data()?.totalPages ?? 0) || busy()"
+                (click)="move(1)"
+              >
+                <app-icon name="chevron" />
+              </button>
+            </nav>
+          </footer>
+        </section>
+      }
+      @if (auth.admin() && nav() === 'events') {
+        <section class="list-card events-card">
+          <div class="section-heading">
+            <div>
+              <h2>Histórico de atividades</h2>
+              <p>Cadastros, alterações, consultas e comandos de status recebidos via Kafka.</p>
+            </div>
+            <button class="secondary" [disabled]="eventsBusy()" (click)="loadEvents(eventsPage)">
+              <app-icon name="reset" />Atualizar
             </button>
           </div>
-        </footer>
-      </section>
-      <p class="footnote">SCORE PLATFORM <span>•</span> Gestão de clientes</p>
+          @if (eventsError()) {
+            <div class="notice error" role="alert">{{ eventsError() }}</div>
+          }
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Data e hora</th>
+                  <th>Cliente</th>
+                  <th>Evento</th>
+                  <th>Descrição</th>
+                </tr>
+              </thead>
+              <tbody>
+                @if (eventsBusy()) {
+                  <tr>
+                    <td colspan="4" class="empty">Carregando eventos…</td>
+                  </tr>
+                } @else {
+                  @for (event of events()?.content; track event.id) {
+                    <tr>
+                      <td class="nowrap">{{ event.createdAt | date: 'dd/MM/yyyy HH:mm' }}</td>
+                      <td>#{{ event.customerId }}</td>
+                      <td>
+                        <span class="event-type">{{ event.type }}</span>
+                      </td>
+                      <td>{{ event.description }}</td>
+                    </tr>
+                  } @empty {
+                    <tr>
+                      <td colspan="4" class="empty">
+                        <app-icon name="activity" /><strong>Nenhuma atividade registrada</strong>
+                        <p>As novas atividades dos clientes aparecerão aqui.</p>
+                      </td>
+                    </tr>
+                  }
+                }
+              </tbody>
+            </table>
+          </div>
+          <footer class="pagination">
+            <span>Página {{ eventsPage + 1 }} de {{ events()?.totalPages || 1 }}</span>
+            <div>
+              <button
+                class="secondary"
+                [disabled]="eventsPage === 0 || eventsBusy()"
+                (click)="loadEvents(eventsPage - 1)"
+              >
+                Anterior</button
+              ><button
+                class="secondary"
+                [disabled]="eventsPage + 1 >= (events()?.totalPages ?? 0) || eventsBusy()"
+                (click)="loadEvents(eventsPage + 1)"
+              >
+                Próxima
+              </button>
+            </div>
+          </footer>
+        </section>
+      }
+      @if (nav() === 'settings') {
+        <section class="settings-grid">
+          <article class="list-card settings-card">
+            <div class="settings-icon"><app-icon name="user" /></div>
+            <h2>Sua conta</h2>
+            <p>Informações da sessão atual</p>
+            <dl>
+              <div>
+                <dt>Usuário</dt>
+                <dd>{{ auth.username() }}</dd>
+              </div>
+              <div>
+                <dt>Perfil de acesso</dt>
+                <dd>
+                  <span class="badge">{{ auth.admin() ? 'Administrador' : 'Consulta' }}</span>
+                </dd>
+              </div>
+              <div>
+                <dt>Permissões</dt>
+                <dd>
+                  {{
+                    auth.admin()
+                      ? 'Consultar, cadastrar, editar e excluir clientes'
+                      : 'Consultar clientes e score de crédito'
+                  }}
+                </dd>
+              </div>
+            </dl>
+            <button class="secondary" (click)="auth.logout()">
+              <app-icon name="logout" />Sair da conta
+            </button>
+          </article>
+          @if (auth.admin()) {
+            <article class="list-card settings-card">
+              <div class="settings-icon"><app-icon name="shield" /></div>
+              <h2>Ambiente de trabalho</h2>
+              <p>Serviços utilizados pela plataforma</p>
+              <dl>
+                <div>
+                  <dt>Identidade</dt>
+                  <dd>Keycloak · OAuth 2.0 + PKCE</dd>
+                </div>
+                <div>
+                  <dt>Eventos</dt>
+                  <dd>Kafka / Redpanda</dd>
+                </div>
+                <div>
+                  <dt>Score de crédito</dt>
+                  <dd>Consulta externa sob demanda</dd>
+                </div>
+                <div>
+                  <dt>Indicadores</dt>
+                  <dd>Base completa; média das últimas consultas bem-sucedidas</dd>
+                </div>
+              </dl>
+            </article>
+          }
+        </section>
+      }
+      <div class="page-footnote">
+        <span>CrediScore</span> Uma visão mais clara para cada decisão.
+      </div>
     </main>
   </div>
 </div>
-@if(editing()){
-<div class="overlay">
-  <section
-    class="dialog"
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="edit-title"
+@if (editing()) {
+  <app-modal
+    [title]="id === null ? 'Cadastrar novo cliente' : 'Editar cliente'"
+    [locked]="saving()"
+    (closed)="editing.set(false)"
   >
-    <h2 id="edit-title">{{id === null ? 'Novo cliente' : 'Editar cliente'}}</h2>
-    <p>Preencha os dados para manter sua base atualizada.</p>
-    <form #customerForm="ngForm" (ngSubmit)="save()">
+    <form #customerForm="ngForm" class="customer-form" (ngSubmit)="save()">
       <label
-        >Nome completo<input
+        >Nome completo <span class="required">*</span
+        ><input
           name="name"
           [(ngModel)]="form.name"
           required
           maxlength="150"
-          autocomplete="name" /></label
-      ><label
-        >CPF<input
+          autocomplete="name"
+          placeholder="Digite o nome do cliente"
+      /></label>
+      <label
+        >CPF <span class="required">*</span
+        ><input
           name="cpf"
-          [(ngModel)]="form.cpf"
+          [ngModel]="formatCpf(form.cpf)"
+          (ngModelChange)="setCpf($event)"
           required
-          pattern="[0-9]{11}"
-          maxlength="11"
+          pattern="[0-9]{3}[.][0-9]{3}[.][0-9]{3}-[0-9]{2}|[0-9]{11}"
+          maxlength="14"
           inputmode="numeric"
-          placeholder="11 dígitos, sem pontuação" /></label
-      ><label
-        >E-mail<input
+          placeholder="000.000.000-00"
+      /></label>
+      <label
+        >E-mail <span class="required">*</span
+        ><input
           name="email"
           [(ngModel)]="form.email"
           required
           email
           maxlength="254"
           type="email"
-          autocomplete="email" /></label
-      ><label
-        >Status<select name="customerStatus" [(ngModel)]="form.status">
+          autocomplete="email"
+          placeholder="cliente@email.com"
+      /></label>
+      <label
+        >Status <span class="required">*</span
+        ><select name="customerStatus" [(ngModel)]="form.status">
           <option value="ACTIVE">Ativo</option>
           <option value="INACTIVE">Inativo</option>
         </select></label
-      >@if(error()){
-      <div class="notice error" role="alert">{{error()}}</div>
+      >
+      @if (error()) {
+        <div class="notice error" role="alert">{{ error() }}</div>
       }
       <div class="dialog-actions">
-        <button
-          type="button"
-          class="secondary"
-          (click)="editing.set(false)"
-          [disabled]="saving()"
-        >
+        <button type="button" class="secondary" (click)="editing.set(false)" [disabled]="saving()">
           Cancelar</button
         ><button class="primary" [disabled]="customerForm.invalid || saving()">
-          {{saving() ? 'Salvando…' : 'Salvar cliente'}}
+          {{ saving() ? 'Salvando…' : 'Salvar cliente' }}
         </button>
       </div>
     </form>
-  </section>
-</div>
-} @if(deleting()){
-<div class="overlay">
-  <section
-    class="dialog"
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="delete-title"
-  >
-    <h2 id="delete-title">Excluir cliente?</h2>
-    <p>
-      O cadastro de <strong>{{deleting()?.name}}</strong> será excluído. Esta
-      ação não pode ser desfeita.
+  </app-modal>
+}
+@if (deleting()) {
+  <app-modal title="Excluir cliente?" [locked]="saving()" (closed)="deleting.set(null)"
+    ><div class="delete-warning"><app-icon name="trash" /></div>
+    <p class="dialog-description">
+      O cadastro de <strong>{{ deleting()?.name }}</strong> será excluído. Esta ação não pode ser
+      desfeita.
     </p>
-    @if(error()){
-    <p role="alert">{{error()}}</p>
+    @if (error()) {
+      <div class="notice error" role="alert">{{ error() }}</div>
     }
     <div class="dialog-actions">
-      <button
-        class="secondary"
-        (click)="deleting.set(null)"
-        [disabled]="saving()"
-      >
-        Cancelar</button
+      <button class="secondary" (click)="deleting.set(null)" [disabled]="saving()">Cancelar</button
       ><button class="danger" (click)="remove()" [disabled]="saving()">
-        Confirmar exclusão
+        {{ saving() ? 'Excluindo…' : 'Confirmar exclusão' }}
+      </button>
+    </div></app-modal
+  >
+}
+@if (scoreCustomer()) {
+  <app-modal
+    title="Consultar score"
+    [wide]="true"
+    [locked]="scoreBusy()"
+    (closed)="scoreCustomer.set('')"
+  >
+    <div class="customer-summary">
+      <span class="detail-avatar"><app-icon name="user" /></span>
+      <div>
+        <h3>{{ scoreCustomer() }}</h3>
+        <p>CPF: {{ formatCpf(scoreContext()?.cpf ?? '') }}</p>
+      </div>
+    </div>
+    @if (scoreBusy()) {
+      <div class="score-loading" role="status">
+        <span class="spinner"></span>
+        <h3>Consultando score de crédito</h3>
+        <p>Aguarde a resposta do serviço de análise.</p>
+      </div>
+    } @else if (scoreError()) {
+      <div class="score-failure" role="alert">
+        <app-icon name="warning" />
+        <h3>Não foi possível consultar o score</h3>
+        <p>{{ scoreError() }}</p>
+        <button class="secondary" (click)="showScore(scoreContext()!)">Tentar novamente</button>
+      </div>
+    } @else if (score(); as result) {
+      <div class="score-layout">
+        <div class="gauge-panel">
+          <div
+            class="gauge"
+            role="img"
+            [attr.aria-label]="
+              'Score ' + result.score + ' de 1000, ' + riskLabel(result.classification)
+            "
+          >
+            <svg viewBox="0 0 280 170" aria-hidden="true">
+              <path d="M30 145 A110 110 0 0 1 140 35" stroke="#22c55e" />
+              <path d="M140 35 A110 110 0 0 1 223 73" stroke="#ffb72b" />
+              <path d="M223 73 A110 110 0 0 1 250 145" stroke="#ff4438" />
+            </svg>
+            <div class="gauge-value">
+              <strong>{{ result.score }}</strong
+              ><span>de 1000</span>
+            </div>
+          </div>
+          <span [class]="'risk-badge risk-label ' + riskClass(result.classification)">{{
+            riskLabel(result.classification)
+          }}</span>
+        </div>
+        <section class="score-details">
+          <h3>Detalhes do score</h3>
+          <dl>
+            <div>
+              <dt>CPF consultado</dt>
+              <dd>{{ formatCpf(result.cpf) }}</dd>
+            </div>
+            <div>
+              <dt>Score</dt>
+              <dd>{{ result.score }}</dd>
+            </div>
+            <div>
+              <dt>Classificação</dt>
+              <dd>
+                <span [class]="'risk-badge ' + riskClass(result.classification)">{{
+                  riskName(result.classification)
+                }}</span>
+              </dd>
+            </div>
+            <div>
+              <dt>Data da consulta</dt>
+              <dd>
+                {{ result.queriedAt ? (result.queriedAt | date: 'dd/MM/yyyy HH:mm') : 'Agora' }}
+              </dd>
+            </div>
+            <div>
+              <dt>Fonte</dt>
+              <dd>Serviço externo</dd>
+            </div>
+          </dl>
+        </section>
+      </div>
+      <div class="notice info">
+        <app-icon name="info" />O score é obtido através de um serviço externo de análise de
+        crédito.
+      </div>
+    }
+    <div class="dialog-actions">
+      <button class="primary" [disabled]="scoreBusy()" (click)="scoreCustomer.set('')">
+        Fechar
       </button>
     </div>
-  </section>
-</div>
-} @if(scoreCustomer()){
-<div class="overlay">
-  <section
-    class="dialog"
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="score-title"
-  >
-    <div class="eyebrow">ANÁLISE DE CRÉDITO</div>
-    <h2 id="score-title">{{scoreCustomer()}}</h2>
-    @if(scoreBusy()){
-    <p>Consultando serviço de Score…</p>
-    }@else{
-    <div class="score-number">{{score()?.score}}<small>/ 1000</small></div>
-    <span class="badge">{{score()?.classification}}</span>
-    <p>Resultado retornado pelo serviço externo.</p>
-    }
-    <div class="dialog-actions">
-      <button class="secondary" (click)="scoreCustomer.set('')">Fechar</button>
+  </app-modal>
+}
+@if (detail(); as c) {
+  <app-modal title="Detalhes do cliente" [wide]="true" (closed)="detail.set(null)">
+    <div class="customer-summary">
+      <span class="detail-avatar"><app-icon name="user" /></span>
+      <div>
+        <h3>
+          {{ c.name }}
+          <span class="badge" [class.inactive]="c.status === 'INACTIVE'">{{
+            c.status === 'ACTIVE' ? 'Ativo' : 'Inativo'
+          }}</span>
+        </h3>
+        <p>Cliente desde {{ c.createdAt | date: 'dd/MM/yyyy' }}</p>
+      </div>
     </div>
-  </section>
-</div>
+    <div class="tabs" role="tablist" aria-label="Informações do cliente">
+      <button
+        role="tab"
+        id="general-tab"
+        aria-controls="customer-panel"
+        [attr.aria-selected]="detailTab() === 'general'"
+        [class.active]="detailTab() === 'general'"
+        (click)="selectTab('general')"
+      >
+        Dados gerais</button
+      ><button
+        role="tab"
+        id="score-tab"
+        aria-controls="customer-panel"
+        [attr.aria-selected]="detailTab() === 'score'"
+        [class.active]="detailTab() === 'score'"
+        (click)="selectTab('score')"
+      >
+        Score
+      </button>
+      @if (auth.admin()) {
+        <button
+          role="tab"
+          id="history-tab"
+          aria-controls="customer-panel"
+          [attr.aria-selected]="detailTab() === 'history'"
+          [class.active]="detailTab() === 'history'"
+          (click)="selectTab('history')"
+        >
+          Histórico de eventos
+        </button>
+      }
+    </div>
+    <section
+      id="customer-panel"
+      role="tabpanel"
+      [attr.aria-labelledby]="
+        detailTab() === 'general'
+          ? 'general-tab'
+          : detailTab() === 'score'
+            ? 'score-tab'
+            : 'history-tab'
+      "
+    >
+      @if (detailError()) {
+        <div class="notice error" role="alert">
+          {{ detailError()
+          }}<button class="text-button" (click)="showDetails(c)">Tentar novamente</button>
+        </div>
+      }
+      @if (detailBusy()) {
+        <p class="loading-inline" role="status">Atualizando dados…</p>
+      }
+      @if (detailTab() === 'general') {
+        <div class="detail-grid">
+          <dl>
+            <div>
+              <dt>ID</dt>
+              <dd>{{ c.id }}</dd>
+            </div>
+            <div>
+              <dt>Nome completo</dt>
+              <dd>{{ c.name }}</dd>
+            </div>
+            <div>
+              <dt>CPF</dt>
+              <dd>{{ formatCpf(c.cpf) }}</dd>
+            </div>
+            <div>
+              <dt>E-mail</dt>
+              <dd>{{ c.email }}</dd>
+            </div>
+          </dl>
+          <dl>
+            <div>
+              <dt>Status</dt>
+              <dd>
+                <span class="badge" [class.inactive]="c.status === 'INACTIVE'">{{
+                  c.status === 'ACTIVE' ? 'Ativo' : 'Inativo'
+                }}</span>
+              </dd>
+            </div>
+            <div>
+              <dt>Data de cadastro</dt>
+              <dd>{{ c.createdAt | date: 'dd/MM/yyyy HH:mm' }}</dd>
+            </div>
+            <div>
+              <dt>Última atualização</dt>
+              <dd>{{ c.updatedAt | date: 'dd/MM/yyyy HH:mm' }}</dd>
+            </div>
+          </dl>
+        </div>
+      }
+      @if (detailTab() === 'score') {
+        <div class="saved-score">
+          @if (c.score !== null && c.score !== undefined) {
+            <span class="eyebrow">ÚLTIMA CONSULTA</span
+            ><strong>{{ c.score }}<small> / 1000</small></strong
+            ><span [class]="'risk-badge ' + riskClass(c.classification)">{{
+              riskName(c.classification)
+            }}</span>
+            <p>Consultado em {{ c.scoreQueriedAt | date: 'dd/MM/yyyy HH:mm' }}</p>
+          } @else {
+            <span class="empty-icon"><app-icon name="gauge" /></span>
+            <h3>Score ainda não consultado</h3>
+            <p>Consulte o serviço de crédito para obter a classificação deste cliente.</p>
+          }
+          <button class="secondary" [disabled]="scoreBusy()" (click)="showScore(c)">
+            <app-icon name="gauge" />Consultar score
+          </button>
+        </div>
+      }
+      @if (auth.admin() && detailTab() === 'history') {
+        @if (historyError()) {
+          <div class="notice error" role="alert">
+            {{ historyError()
+            }}<button class="text-button" (click)="loadHistory(historyPage)">
+              Tentar novamente
+            </button>
+          </div>
+        }
+        @if (historyBusy()) {
+          <p class="empty" role="status">Carregando histórico…</p>
+        } @else {
+          <ol class="timeline">
+            @for (event of history()?.content; track event.id) {
+              <li>
+                <span class="timeline-dot"
+                  ><app-icon [name]="event.type === 'SCORE_QUERIED' ? 'gauge' : 'activity'"
+                /></span>
+                <div>
+                  <strong>{{ event.description }}</strong
+                  ><time>{{ event.createdAt | date: 'dd/MM/yyyy HH:mm' }}</time>
+                </div>
+              </li>
+            } @empty {
+              <li class="history-empty">Nenhum evento registrado para este cliente.</li>
+            }
+          </ol>
+          <div class="history-pagination">
+            <button
+              class="secondary"
+              [disabled]="historyPage === 0"
+              (click)="loadHistory(historyPage - 1)"
+            >
+              Anterior</button
+            ><span>{{ historyPage + 1 }} / {{ history()?.totalPages || 1 }}</span
+            ><button
+              class="secondary"
+              [disabled]="historyPage + 1 >= (history()?.totalPages ?? 0)"
+              (click)="loadHistory(historyPage + 1)"
+            >
+              Próxima
+            </button>
+          </div>
+        }
+      }
+    </section>
+    <div class="dialog-actions">
+      <button class="secondary" (click)="detail.set(null)">Fechar</button>
+      @if (auth.admin()) {
+        <button class="secondary edit-outline" (click)="edit(c)">Editar</button
+        ><button class="danger" (click)="confirmDelete(c)">Excluir</button>
+      }
+    </div>
+  </app-modal>
 }
